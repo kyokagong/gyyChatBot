@@ -171,7 +171,7 @@ def test_main():
     print(sum_pairs)
 
     seq2seq = create_seq2seq_model(len(vocab_dict) + 3, 20, 20, 1, 32, 5.0, DGK_BUCKETS)
-    seq2seq.restore_weights_variables("ckpt/")
+    # seq2seq.restore_weights_variables("ckpt/")
 
     SessionHandler().initialize_variables()
 
@@ -183,7 +183,7 @@ def test_main():
                 pred_tokens = seq2seq.predict(encoder_inputs, target_weights, DGK_BUCKETS[bucket_id])
                 # print(pred_tokens)
 
-    seq2seq.save_weights_variables("ckpt/translate.ckpt")
+    # seq2seq.save_weights_variables("ckpt/translate.ckpt")
 
     end_time = time.time()
     print(end_time-start_time)

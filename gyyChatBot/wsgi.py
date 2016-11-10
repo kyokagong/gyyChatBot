@@ -10,7 +10,8 @@ https://docs.djangoproject.com/en/1.10/howto/deployment/wsgi/
 import os
 
 from django.core.wsgi import get_wsgi_application
+import sys
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "gyyChatBot.settings")
-
+# os.environ.setdefault("DJANGO_SETTINGS_MODULE", "gyyChatBot.settings")
+os.environ["DJANGO_SETTINGS_MODULE"] = "gyyChatBot.settings"
 application = get_wsgi_application()
