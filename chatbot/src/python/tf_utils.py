@@ -5,7 +5,7 @@ flags = tf.app.flags
 flags.DEFINE_integer("num_gpus", 0,
                      "Total number of gpus for each machine."
                      "If you don't use GPU, please set it to '0'")
-flags.DEFINE_string("device", "/cpu:0", "cpu mode or gpu mode")
+flags.DEFINE_string("device", "/gpu:0", "cpu mode or gpu mode")
 flags.DEFINE_float("INIT_VAL", 0.1, "initial value for random initialization")
 FLAGS = flags.FLAGS
 
