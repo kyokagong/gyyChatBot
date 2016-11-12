@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <title>GYY CHAT BOT</title>
     <script src="http://apps.bdimg.com/libs/jquery/1.11.1/jquery.min.js"></script>
+
+    {% load staticfiles %}
     <script type="text/javascript" src="{% static "js/action.js" %}"></script>
 </head>
 
@@ -11,8 +13,8 @@
 <body>
 WELCOME TO GYY CHAT BOT
 
-    <button id="next" type="button" onclick="runTensorflow();">run tensorflow program</button><br/>
-
+    <button id="run" type="button" onclick="runTensorflow();">run tensorflow program</button><br/>
+    <button id="getlogs" type="button" onclick="getDgkLogs();">get logs</button><br/>
     <div id="log">LOGS</div>
 
 </body>

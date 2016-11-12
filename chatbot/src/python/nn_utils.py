@@ -216,6 +216,7 @@ class Seq2seq4SameEmbed:
             _, gradients, loss = SessionHandler().get_session().run(output_feed, feed_dict=input_feed)
             if verbose:
                 print("epoch %s, loss is: %s" % (i, loss))
+        return loss
 
 
     def predict(self, encode_inputs, target_weights, bucket):

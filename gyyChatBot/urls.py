@@ -22,4 +22,6 @@ import chatbot.views as chatbotviews
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^$', chatbotviews.home),
+    url(r'run_dgk/', chatbotviews.run_dgk_test),
+    url(r'get_dgk_logs/', chatbotviews.get_dgk_logs),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
