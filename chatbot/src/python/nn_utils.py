@@ -4,7 +4,7 @@ import numpy as np
 
 import sys
 
-from chatbot.src.python.tf_utils import SessionHandler, FLAGS
+from chatbot.src.python.tf_utils import FLAGS
 from tensorflow.python.ops import rnn, rnn_cell
 from chatbot.src.python.word_utils import create_vocab_dict, setence2token
 
@@ -49,7 +49,7 @@ class LSTMLayer():
         self._n_hidden = n_hidden
 
     def init_net(self):
-        with tf.device(FLAGS.device):
+        # with tf.device(FLAGS.device):
             self._init_layer()
 
     def _init_layer(self):
@@ -98,7 +98,7 @@ class RNN():
                                         ).minimize(self._loss,
                                                         global_step=None)
 
-    def fit(self,inputX, inputY, epoch, batch_size, lr=0.01, decay_size=20, verbose=False):
+    def fit(self, session, inputX, inputY, epoch, batch_size, lr=0.01, decay_size=20, verbose=False):
         lost = 0
         for i in range(epoch):
             feed_dict = {self._input_node: inputX,
@@ -106,7 +106,7 @@ class RNN():
                          self._batch_size: batch_size,
                          self.learning_rate: lr}
 
-            [_, l] = SessionHandler().get_session().run([self.optimizer, self.loss],
+            [_, l] = session.run([self.optimizer, self.loss],
                                                         feed_dict=feed_dict)
             lost += l
             if verbose:
@@ -140,7 +140,7 @@ class Seq2seq4SameEmbed:
 
     def make_net(self):
 
-        with tf.device(FLAGS.device):
+        # with tf.device(FLAGS.device):
             # use max to pick up the max bucket.
             self.embed_en_inputs = tf.split(0, max(self._buckets, key=lambda x:x[0])[0],
                                             tf.placeholder(dtype=tf.int32,shape=(None,)))
@@ -197,7 +197,7 @@ class Seq2seq4SameEmbed:
             self._saver = tf.train.Saver(tf.all_variables())
 
 
-    def fit(self, train_encode_inputs, train_decode_inputs, target_weights, bucket,
+    def fit(self, session, train_encode_inputs, train_decode_inputs, target_weights, bucket,
             learning_rate, epoch, verbose=False):
         encoder_size, decoder_size = bucket
         bucket_id = self._buckets.index(bucket)
@@ -213,13 +213,13 @@ class Seq2seq4SameEmbed:
 
         input_feed[self._learning_rate] = learning_rate
         for i in range(epoch):
-            _, gradients, loss = SessionHandler().get_session().run(output_feed, feed_dict=input_feed)
+            _, gradients, loss = session.run(output_feed, feed_dict=input_feed)
             if verbose:
                 print("epoch %s, loss is: %s" % (i, loss))
         return loss
 
 
-    def predict(self, encode_inputs, target_weights, bucket):
+    def predict(self, session, encode_inputs, target_weights, bucket):
         # Get output logits for the sentence.
         # print(encode_inputs[0])
         # print(type(encode_inputs[0]))
@@ -232,20 +232,20 @@ class Seq2seq4SameEmbed:
             input_feed[self.embed_decod_inputs[i].name] = np.zeros(encode_inputs[0].shape[0], dtype=np.int32)
             input_feed[self.target_weights[i].name] = np.zeros(encode_inputs[0].shape[0], dtype=np.float32)
 
-        outputs = SessionHandler().get_session().run(self._outputs[bucket_id], feed_dict=input_feed)
+        outputs = session.run(self._outputs[bucket_id], feed_dict=input_feed)
 
         # in python3, argmax outputs integer value
         outputs_token_id = [np.argmax(logit, axis=1) for logit in outputs]
         return outputs_token_id
 
-    def save_weights_variables(self, checkpoint_path):
-        self._saver.save(SessionHandler().get_session(), checkpoint_path, global_step=self._global_step)
+    def save_weights_variables(self, session, checkpoint_path):
+        self._saver.save(session, checkpoint_path, global_step=self._global_step)
 
-    def restore_weights_variables(self, ckpt_path):
+    def restore_weights_variables(self, session, ckpt_path):
         ckpt = tf.train.get_checkpoint_state(ckpt_path)
         if ckpt and tf.gfile.Exists(ckpt.model_checkpoint_path):
             print("Reading model parameters from %s" % ckpt.model_checkpoint_path)
-            self._saver.restore(SessionHandler().get_session(), ckpt.model_checkpoint_path)
+            self._saver.restore(session, ckpt.model_checkpoint_path)
 
 
 def test_data():

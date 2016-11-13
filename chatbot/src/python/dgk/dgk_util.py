@@ -3,6 +3,7 @@ import sys
 import os
 
 # import matplotlib.pyplot as plt
+import tensorflow as tf
 import numpy as np
 import math
 import time
@@ -13,10 +14,10 @@ from chatbot.src.python.tf_utils import SessionHandler
 import chatbot.src.python.utils.data_util as data_util
 
 
-DIR = "test/%s"
+DIR = "../../../../test/%s"
 # DIR = "/Users/kyoka/GitHub/gyyChatBot/test/%s"
 DGK_DATA = DIR%"dgk_data3.txt"
-BATCH_SIZE = 256
+BATCH_SIZE = 128
 
 DGK_BUCKETS = [(10,10),(20,20),(30,30),(40,40),(50,50),(60,60),(70,70)]
 
@@ -158,7 +159,7 @@ def create_seq2seq_model(vocab_size, layer_size, embedding_size,
 
 
 def dgk_main():
-    SessionHandler().set_default()
+    # SessionHandler().set_default()
 
     vocab_dict, vocab_dict_inv = create_vocab_dict(DIR%"dgk_vocabulary.txt", 3)
     pair_sample = get_pair_sample(vocab_dict_inv)
@@ -174,39 +175,56 @@ def dgk_main():
     print(sum_pairs)
 
     seq2seq = create_seq2seq_model(len(vocab_dict) + 3, 20, 20, 1, BATCH_SIZE, 5.0, DGK_BUCKETS)
-    seq2seq.restore_weights_variables(DIR%"ckpt/")
 
-    SessionHandler().initialize_variables()
+
+    # SessionHandler().initialize_variables()
+
+
 
     epoches = 10
     run_count = 0
     base = 100
+    bucket_id = 0
 
-    print("start dgk run")
-    start_time = time.time()
-    for epoch in range(epoches):
-        for bucket_id in range(len(DGK_BUCKETS)):
-            if len(buckets_map[DGK_BUCKETS[bucket_id]]) > 0:
-                for encoder_inputs, decoder_inputs, target_weights in \
-                        get_batch_input_pairs(buckets_map, DGK_BUCKETS[bucket_id], BATCH_SIZE):
-                    loss = seq2seq.fit(encoder_inputs, decoder_inputs, target_weights, DGK_BUCKETS[bucket_id], 0.01, 1, True)
-                    # pred_tokens = seq2seq.predict(encoder_inputs, target_weights, DGK_BUCKETS[bucket_id])
-                    # print(pred_tokens)
-                    log = "time:%s epoch:%s run count:%s loss:%s" % (
-                        time.asctime(time.localtime(time.time())),
-                        epoch,
-                        run_count,
-                        loss)
-                    if run_count % base == 0:
-                        write_dgk_log(log+"\n")
+    with tf.Session() as sess:
+        init_op = tf.group(tf.initialize_all_variables(), tf.initialize_local_variables())
+        sess.run(init_op)
+        v_list = tf.all_variables()
+        for v in v_list:
+            if not tf.is_variable_initialized(v).eval():
+                print(v)
+                SessionHandler().get_session().run(v.initialized_value())
 
-                    print(log)
-                    run_count += 1
 
-    seq2seq.save_weights_variables(DIR%"ckpt/translate.ckpt")
+        print("start dgk run")
 
-    end_time = time.time()
-    print(end_time-start_time)
+        seq2seq.restore_weights_variables(sess, DIR % "ckpt/")
+
+        start_time = time.time()
+        for epoch in range(epoches):
+            # for bucket_id in range(len(DGK_BUCKETS)):
+
+                if len(buckets_map[DGK_BUCKETS[bucket_id]]) > 0:
+                    for encoder_inputs, decoder_inputs, target_weights in \
+                            get_batch_input_pairs(buckets_map, DGK_BUCKETS[bucket_id], BATCH_SIZE):
+                        loss = seq2seq.fit(sess, encoder_inputs, decoder_inputs, target_weights, DGK_BUCKETS[bucket_id], 0.01, 1, True)
+                        # pred_tokens = seq2seq.predict(encoder_inputs, target_weights, DGK_BUCKETS[bucket_id])
+                        # print(pred_tokens)
+                        log = "time:%s epoch:%s run count:%s loss:%s" % (
+                            time.asctime(time.localtime(time.time())),
+                            epoch,
+                            run_count,
+                            loss)
+                        # if run_count % base == 0:
+                            # write_dgk_log(log+"\n")
+
+                        print(log)
+                        run_count += 1
+
+        seq2seq.save_weights_variables(DIR%"ckpt/translate.ckpt")
+
+        end_time = time.time()
+        print(end_time-start_time)
 
     # len_en_list = []
     # len_de_list = []
@@ -254,7 +272,7 @@ def sleep_task(t=10):
 
 
 if __name__ == '__main__':
-    # test_main()
+    test_main()
 
     # open(DIR%"dgk_vocabulary.txt",'r')
-    print(sys.path[0])
+    # print(sys.path[0])
