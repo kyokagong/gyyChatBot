@@ -10,7 +10,7 @@ import time
 
 from chatbot.src.python.word_utils import create_vocab_dict
 from chatbot.src.python.nn_utils import Seq2seq4SameEmbed
-from chatbot.src.python.tf_utils import SessionHandler
+from chatbot.src.python.tf_utils import SessionHandler, FLAGS
 import chatbot.src.python.utils.data_util as data_util
 
 
@@ -18,6 +18,8 @@ DIR = "../../../../test/%s"
 # DIR = "/Users/kyoka/GitHub/gyyChatBot/test/%s"
 DGK_DATA = DIR%"dgk_data3.txt"
 BATCH_SIZE = 128
+LEARNING_RATE = 0.01
+DECAY_RATE = 0.99
 
 DGK_BUCKETS = [(10,10),(20,20),(30,30),(40,40),(50,50),(60,60),(70,70)]
 
@@ -162,7 +164,7 @@ def dgk_main():
     # SessionHandler().set_default()
 
     vocab_dict, vocab_dict_inv = create_vocab_dict(DIR%"dgk_vocabulary.txt", 3)
-    pair_sample = get_pair_sample(vocab_dict_inv)
+    pair_sample = get_pair_sample(vocab_dict_inv, 100000)
     print(len(pair_sample))
     print(sys.getsizeof(pair_sample))
 
@@ -174,7 +176,7 @@ def dgk_main():
         print(item, len(buckets_map[item]))
     print(sum_pairs)
 
-    seq2seq = create_seq2seq_model(len(vocab_dict) + 3, 20, 20, 1, BATCH_SIZE, 5.0, DGK_BUCKETS)
+    seq2seq = create_seq2seq_model(len(vocab_dict) + 3, 20, 20, 1, BATCH_SIZE, 1.0, DGK_BUCKETS)
 
 
     # SessionHandler().initialize_variables()
@@ -185,6 +187,7 @@ def dgk_main():
     run_count = 0
     base = 100
     bucket_id = 0
+    lr = LEARNING_RATE
 
     with tf.Session() as sess:
         init_op = tf.group(tf.initialize_all_variables(), tf.initialize_local_variables())
@@ -198,28 +201,31 @@ def dgk_main():
 
         print("start dgk run")
 
-        seq2seq.restore_weights_variables(sess, DIR % "ckpt/")
+        # seq2seq.restore_weights_variables(sess, DIR % "ckpt/")
 
         start_time = time.time()
         for epoch in range(epoches):
-            # for bucket_id in range(len(DGK_BUCKETS)):
-
+            for bucket_id in range(len(DGK_BUCKETS)):
                 if len(buckets_map[DGK_BUCKETS[bucket_id]]) > 0:
                     for encoder_inputs, decoder_inputs, target_weights in \
                             get_batch_input_pairs(buckets_map, DGK_BUCKETS[bucket_id], BATCH_SIZE):
-                        loss = seq2seq.fit(sess, encoder_inputs, decoder_inputs, target_weights, DGK_BUCKETS[bucket_id], 0.01, 1, True)
+                        loss = seq2seq.fit(sess, encoder_inputs, decoder_inputs,
+                                           target_weights, DGK_BUCKETS[bucket_id], lr, 1)
                         # pred_tokens = seq2seq.predict(encoder_inputs, target_weights, DGK_BUCKETS[bucket_id])
                         # print(pred_tokens)
-                        log = "time:%s epoch:%s run count:%s loss:%s" % (
+                        log = "time:%s epoch:%s run count:%s loss:%s learning rate:%s" % (
                             time.asctime(time.localtime(time.time())),
                             epoch,
                             run_count,
-                            loss)
+                            loss,
+                            lr
+                        )
                         # if run_count % base == 0:
                             # write_dgk_log(log+"\n")
 
                         print(log)
                         run_count += 1
+            lr *= DECAY_RATE
 
         seq2seq.save_weights_variables(DIR%"ckpt/translate.ckpt")
 
@@ -272,7 +278,8 @@ def sleep_task(t=10):
 
 
 if __name__ == '__main__':
-    test_main()
+    with tf.device(FLAGS.device):
+        test_main()
 
     # open(DIR%"dgk_vocabulary.txt",'r')
     # print(sys.path[0])
